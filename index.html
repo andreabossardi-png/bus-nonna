@@ -122,6 +122,10 @@ h2 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 2
 .arr { font-family: var(--font-display); font-weight: 500; font-size: 24px; color: var(--muted); }
 .trip svg { width: 24px; height: 24px; justify-self: center; opacity: .6; }
 .tag { grid-column: 1 / -1; margin-top: 6px; font-weight: 700; font-size: 17px; }
+.via { grid-column: 1 / -1; margin-top: 4px; font-size: 16px; color: var(--muted); }
+.via.warn-via { color: var(--accent); font-weight: 700; }
+.trip.next .via { color: var(--on-accent); }
+.hint { margin: 0; padding: 12px 14px; margin-inline: 16px; border-radius: 14px; background: var(--soft); font-size: 17px; }
 .trip.next { background: var(--accent); color: var(--on-accent); border-radius: 16px; border-bottom-color: transparent; margin-block: 4px; }
 .trip.next .arr { color: var(--on-accent); opacity: .92; }
 .trip.past { opacity: .45; }
@@ -148,7 +152,7 @@ h2 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 2
     <div class="badge" aria-hidden="true">2</div>
     <div>
       <h1>Bus per la Nonna</h1>
-      <p class="sub">Linea 2 · Rovereto, Corso Rosmini ⇄ Nomi, Piazza Springa</p>
+      <p class="sub">Linea 2 · Rovereto, Corso Rosmini ⇄ Nomi, Casa di Riposo</p>
     </div>
   </header>
 
@@ -167,7 +171,7 @@ h2 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 2
     </div>
     <dl class="stops">
       <div><dt>Sali a</dt><dd>Rovereto, Corso Rosmini (monumento)</dd></div>
-      <div><dt>Scendi a</dt><dd>Nomi, Piazza Springa (ultima fermata)</dd></div>
+      <div><dt>Scendi a</dt><dd>Nomi, Casa di Riposo</dd></div>
     </dl>
     <p class="range" id="range-andata"></p>
     <div>
@@ -183,9 +187,10 @@ h2 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 2
       <h2 id="h-ritorno">Da Nomi a Rovereto</h2>
     </div>
     <dl class="stops">
-      <div><dt>Sali a</dt><dd>Nomi, Piazza Springa (capolinea)</dd></div>
+      <div><dt>Sali a</dt><dd>Nomi, Casa di Riposo (stessa fermata dell'andata)</dd></div>
       <div><dt>Scendi a</dt><dd>Rovereto, Corso Rosmini (Posta)</dd></div>
     </dl>
+    <p class="hint">Il bus va prima al capolinea in Piazza Springa e da lì riparte per Rovereto. Salendo, conviene dire all'autista che si va a Rovereto.</p>
     <p class="range" id="range-ritorno"></p>
     <div>
       <div class="cols" aria-hidden="true"><span>Parte</span><span></span><span>Arriva</span></div>
@@ -259,6 +264,26 @@ function tripsFor(dir, info) {
   return DATA[dir].feriale.filter((t) => runs(t[2], info)).map(([dep, arr]) => ({ dep, arr }));
 }
 const toMin = (hhmm) => +hhmm.slice(0, 2) * 60 + +hhmm.slice(3, 5);
+const hm = (m) => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+// La fermata Casa di Riposo e' servita solo in direzione Nomi, 1 minuto prima del capolinea
+// Piazza Springa (verificato con la tabella esposta alla fermata). Per il ritorno si sale li'
+// sul bus che arriva al capolinea e riparte per Rovereto entro 16 minuti.
+function tripsView(dir, info) {
+  const inbound = tripsFor('andata', info);
+  if (dir === 'andata') return inbound.map((t) => ({ dep: t.dep, arr: hm(toMin(t.arr) - 1) }));
+  const arrivals = inbound.map((t) => toMin(t.arr));
+  const used = new Set();
+  return tripsFor('ritorno', info).sort((a, b) => toMin(a.dep) - toMin(b.dep)).map((t) => {
+    const o = toMin(t.dep);
+    const cand = arrivals.filter((a) => a <= o && o - a <= 16 && !used.has(a));
+    if (cand.length) {
+      const a = Math.max(...cand);
+      used.add(a);
+      return { dep: hm(a - 1), arr: t.arr, via: 'Riparte dal capolinea alle ' + t.dep };
+    }
+    return { dep: t.dep, arr: t.arr, via: 'Da prendere in Piazza Springa: non passa dalla Casa di Riposo', springa: true };
+  });
+}
 /*PURE-END*/
 
 function romeNow() {
@@ -301,7 +326,7 @@ function buildDays(now) {
 function renderList(dir, info, isToday, nowMin) {
   const list = $('list-' + dir), empty = $('empty-' + dir);
   const from = state.all ? 0 : FROM[dir];
-  const trips = tripsFor(dir, info).filter((t) => toMin(t.dep) >= from).sort((a, b) => toMin(a.dep) - toMin(b.dep));
+  const trips = tripsView(dir, info).filter((t) => toMin(t.dep) >= from).sort((a, b) => toMin(a.dep) - toMin(b.dep));
   $('range-' + dir).textContent = state.all ? 'Tutte le corse del giorno' : 'Corse dalle ' + hhmm(from);
   list.innerHTML = '';
   let nextIdx = -1;
@@ -312,6 +337,7 @@ function renderList(dir, info, isToday, nowMin) {
     li.className = 'trip' + (i === nextIdx ? ' next' : '') + (past ? ' past' : '');
     li.innerHTML = '<time class="dep" datetime="' + t.dep + '">' + t.dep + '</time>' + ARROW +
       '<time class="arr" datetime="' + t.arr + '">' + t.arr + '</time>' +
+      (t.via ? '<span class="via' + (t.springa ? ' warn-via' : '') + '">' + t.via + '</span>' : '') +
       (i === nextIdx ? '<span class="tag">Prossima corsa, ' + fmtWait(toMin(t.dep) - nowMin) + '</span>' : '');
     list.appendChild(li);
   });
