@@ -293,6 +293,7 @@ function romeNow() {
 }
 
 const FROM = { andata: 15 * 60, ritorno: 15 * 60 };
+const TO = 18 * 60;
 const state = { today: null, selected: null, all: false };
 const $ = (id) => document.getElementById(id);
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -326,8 +327,8 @@ function buildDays(now) {
 function renderList(dir, info, isToday, nowMin) {
   const list = $('list-' + dir), empty = $('empty-' + dir);
   const from = state.all ? 0 : FROM[dir];
-  const trips = tripsView(dir, info).filter((t) => toMin(t.dep) >= from).sort((a, b) => toMin(a.dep) - toMin(b.dep));
-  $('range-' + dir).textContent = state.all ? 'Tutte le corse del giorno' : 'Corse dalle ' + hhmm(from);
+  const trips = tripsView(dir, info).filter((t) => toMin(t.dep) >= from && (state.all || toMin(t.dep) <= TO)).sort((a, b) => toMin(a.dep) - toMin(b.dep));
+  $('range-' + dir).textContent = state.all ? 'Tutte le corse del giorno' : 'Corse tra le ' + hhmm(from) + ' e le ' + hhmm(TO);
   list.innerHTML = '';
   let nextIdx = -1;
   if (isToday) nextIdx = trips.findIndex((t) => toMin(t.dep) >= nowMin);
@@ -343,10 +344,10 @@ function renderList(dir, info, isToday, nowMin) {
   });
   if (!trips.length) {
     empty.hidden = false;
-    empty.textContent = 'Nessuna corsa ' + (state.all ? 'in questo giorno.' : 'dalle ' + hhmm(from) + ' in questo giorno.');
+    empty.textContent = 'Nessuna corsa ' + (state.all ? 'in questo giorno.' : 'tra le ' + hhmm(from) + ' e le ' + hhmm(TO) + ' in questo giorno.');
   } else if (isToday && nextIdx === -1) {
     empty.hidden = false;
-    empty.textContent = 'Per oggi le corse sono finite.';
+    empty.textContent = state.all ? 'Per oggi le corse sono finite.' : 'Per oggi le corse del pomeriggio sono finite.';
   } else {
     empty.hidden = true;
   }
@@ -375,7 +376,7 @@ function render() {
   renderList('ritorno', info, isToday, now.min);
 
   const t = $('toggle');
-  t.textContent = state.all ? 'Mostra solo il pomeriggio' : 'Mostra tutte le corse del giorno';
+  t.textContent = state.all ? 'Mostra solo le corse tra le 15 e le 18' : 'Mostra tutte le corse del giorno';
   t.setAttribute('aria-pressed', String(state.all));
 }
 
