@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#C2410C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Bus Nonna">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<style>html{color-scheme:light}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}*,*::before,*::after{box-sizing:border-box}body{margin:0}[hidden]{display:none!important}</style>
+<title>Bus per la Nonna</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Lexend:wght@500;600;700&display=swap">
+<style>
+/* Layout: l'intestazione porta il tondo della linea 2 come sulle paline di fermata;
+   sotto, la striscia dei sette giorni e due blocchi grandi (Andata, Ritorno) con righe di orari
+   molto spaziate, pensati per una lettura veloce su telefono. */
+:root {
+  --bg: #EDF3F1;
+  --surface: #FFFFFF;
+  --ink: #12303B;
+  --muted: #475F69;
+  --line: #CAD9D5;
+  --accent: #C2410C;
+  --on-accent: #FFFFFF;
+  --soft: #FBE6DB;
+  --focus: #0B5FA5;
+  --font-display: 'Lexend', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-body: 'Atkinson Hyperlegible', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0D1C22;
+    --surface: #152930;
+    --ink: #EAF3F1;
+    --muted: #A6BDC1;
+    --line: #2B444C;
+    --accent: #FF8F52;
+    --on-accent: #1E0E04;
+    --soft: #3B2416;
+    --focus: #7CC0FF;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0D1C22;
+  --surface: #152930;
+  --ink: #EAF3F1;
+  --muted: #A6BDC1;
+  --line: #2B444C;
+  --accent: #FF8F52;
+  --on-accent: #1E0E04;
+  --soft: #3B2416;
+  --focus: #7CC0FF;
+  color-scheme: dark;
+}
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 18px;
+  line-height: 1.45;
+  padding-block: 20px 36px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; gap: 22px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+/* Intestazione */
+.top { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.badge {
+  flex: none; width: 60px; height: 60px; border-radius: 50%;
+  background: var(--accent); color: var(--on-accent);
+  display: grid; place-items: center;
+  font-family: var(--font-display); font-weight: 700; font-size: 34px; line-height: 1;
+  box-shadow: 0 0 0 4px var(--bg), 0 0 0 7px var(--accent);
+  margin: 7px;
+}
+h1 { font-family: var(--font-display); font-weight: 700; font-size: 28px; line-height: 1.1; margin: 0; text-wrap: balance; }
+.sub { margin: 4px 0 0; color: var(--muted); font-size: 16px; }
+
+/* Giorni */
+.days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.day {
+  min-width: 0; min-height: 68px; padding: 8px 2px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  background: var(--surface); border: 2px solid var(--line); border-radius: 14px; cursor: pointer;
+}
+.day .dn { font-size: 14px; color: var(--muted); letter-spacing: .02em; }
+.day .dd { font-family: var(--font-display); font-weight: 600; font-size: 22px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.day[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.day[aria-pressed="true"] .dn { color: var(--bg); }
+.dayline { margin: 12px 2px 0; font-size: 19px; }
+.dayline strong { font-family: var(--font-display); font-weight: 600; display: block; font-size: 21px; }
+.dayline span { color: var(--muted); font-size: 17px; }
+.warn { margin: 0; padding: 12px 14px; border-radius: 14px; background: var(--soft); border: 2px solid var(--accent); font-size: 17px; }
+
+/* Blocchi Andata / Ritorno */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 22px; padding: 20px 6px 8px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.card-head, .stops, .range { padding-inline: 16px; }
+.eyebrow { margin: 0 0 2px; font-size: 14px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); font-weight: 700; }
+h2 { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: 25px; line-height: 1.15; text-wrap: balance; }
+.stops { margin: 0; display: grid; gap: 8px; }
+.stops div { display: grid; grid-template-columns: 5.4rem minmax(0, 1fr); gap: 10px; align-items: baseline; }
+.stops dt { color: var(--muted); font-size: 16px; }
+.stops dd { margin: 0; font-weight: 700; }
+.range { margin: 0; color: var(--muted); font-size: 16px; }
+
+.cols, .trip { display: grid; grid-template-columns: minmax(0, 1fr) 30px minmax(0, 1fr); align-items: center; column-gap: 6px; padding-inline: 16px; }
+.cols { color: var(--muted); font-size: 15px; padding-block: 0 2px; }
+.cols span:last-child { grid-column: 3; }
+.trips { list-style: none; margin: 0; padding: 0; }
+.trip { padding-block: 14px; border-bottom: 1px solid var(--line); min-height: 64px; }
+.trip:last-child { border-bottom: 0; }
+.trip time { font-variant-numeric: tabular-nums; }
+.dep { font-family: var(--font-display); font-weight: 600; font-size: 34px; line-height: 1.1; }
+.arr { font-family: var(--font-display); font-weight: 500; font-size: 24px; color: var(--muted); }
+.trip svg { width: 24px; height: 24px; justify-self: center; opacity: .6; }
+.tag { grid-column: 1 / -1; margin-top: 6px; font-weight: 700; font-size: 17px; }
+.trip.next { background: var(--accent); color: var(--on-accent); border-radius: 16px; border-bottom-color: transparent; margin-block: 4px; }
+.trip.next .arr { color: var(--on-accent); opacity: .92; }
+.trip.past { opacity: .45; }
+.empty { margin: 0; padding: 8px 16px 18px; color: var(--muted); }
+.note-today { margin: 0; padding: 0 16px; color: var(--muted); font-size: 16px; }
+
+.btn { min-height: 58px; padding: 12px 18px; border: 2px solid var(--ink); border-radius: 16px; background: transparent; font-weight: 700; font-size: 18px; cursor: pointer; }
+.btn:hover { background: var(--surface); }
+.foot { margin: 0 2px; color: var(--muted); font-size: 15px; }
+.foot a { color: inherit; text-underline-offset: 3px; }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+@media (max-width: 380px) {
+  h1 { font-size: 25px; }
+  .dep { font-size: 30px; }
+  .arr { font-size: 22px; }
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div class="badge" aria-hidden="true">2</div>
+    <div>
+      <h1>Bus per la Nonna</h1>
+      <p class="sub">Linea 2 · Rovereto, Corso Rosmini ⇄ Nomi, Piazza Springa</p>
+    </div>
+  </header>
+
+  <section aria-labelledby="h-giorno">
+    <h2 id="h-giorno" class="sr">Scegli il giorno</h2>
+    <div class="days" id="days" role="group" aria-labelledby="h-giorno"></div>
+    <p class="dayline" id="dayline"></p>
+  </section>
+
+  <p class="warn" id="warn" hidden></p>
+
+  <section class="card" aria-labelledby="h-andata">
+    <div class="card-head">
+      <p class="eyebrow">Andata</p>
+      <h2 id="h-andata">Da Rovereto a Nomi</h2>
+    </div>
+    <dl class="stops">
+      <div><dt>Sali a</dt><dd>Rovereto, Corso Rosmini (monumento)</dd></div>
+      <div><dt>Scendi a</dt><dd>Nomi, Piazza Springa (ultima fermata)</dd></div>
+    </dl>
+    <p class="range" id="range-andata"></p>
+    <div>
+      <div class="cols" aria-hidden="true"><span>Parte</span><span></span><span>Arriva</span></div>
+      <ol class="trips" id="list-andata" aria-label="Orari di andata"></ol>
+      <p class="empty" id="empty-andata" hidden></p>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="h-ritorno">
+    <div class="card-head">
+      <p class="eyebrow">Ritorno</p>
+      <h2 id="h-ritorno">Da Nomi a Rovereto</h2>
+    </div>
+    <dl class="stops">
+      <div><dt>Sali a</dt><dd>Nomi, Piazza Springa (capolinea)</dd></div>
+      <div><dt>Scendi a</dt><dd>Rovereto, Corso Rosmini (Posta)</dd></div>
+    </dl>
+    <p class="range" id="range-ritorno"></p>
+    <div>
+      <div class="cols" aria-hidden="true"><span>Parte</span><span></span><span>Arriva</span></div>
+      <ol class="trips" id="list-ritorno" aria-label="Orari di ritorno"></ol>
+      <p class="empty" id="empty-ritorno" hidden></p>
+    </div>
+  </section>
+
+  <button class="btn" id="toggle" type="button" aria-pressed="false">Mostra tutte le corse del giorno</button>
+
+  <p class="foot">Orari invernali 2026-27 di Trentino Trasporti, linea 2, validi dal 10 settembre 2026 all'8 giugno 2027. In caso di sciopero o variazioni
+    <a href="https://www.trentinotrasporti.it/it/viaggia-con-noi/urbano/rovereto" target="_blank" rel="noopener">controlla sul sito di Trentino Trasporti</a>.</p>
+</div>
+
+<script>
+const DATA = {"andata":{"feriale":[["06:31","06:51","a"],["07:10","07:30","a"],["07:13","07:33","a"],["07:54","08:14","a"],["08:49","09:09","n"],["08:54","09:14","v"],["09:34","09:54","a"],["10:14","10:34","a"],["10:54","11:14","a"],["11:34","11:54","a"],["12:14","12:34","a"],["12:32","12:54","s"],["12:38","12:58","v"],["12:54","13:14","v"],["13:14","13:34","a"],["13:34","13:54","v"],["14:04","14:24","a"],["14:34","14:54","v"],["15:04","15:24","n"],["15:14","15:34","v"],["15:34","15:54","n"],["15:54","16:14","v"],["16:09","16:29","v"],["16:14","16:34","v"],["16:34","16:54","a"],["16:54","17:14","v"],["17:14","17:34","a"],["17:34","17:54","v"],["17:44","18:04","v"],["17:54","18:14","n"],["18:04","18:24","v"],["18:24","18:44","v"],["18:44","19:04","v"],["19:04","19:24","n"],["19:19","19:39","v"],["19:44","20:04","v"],["19:54","20:14","n"],["20:04","20:24","v"]],"festivo":[["08:08","08:34"],["10:48","11:14"],["13:08","13:34"],["15:08","15:34"],["17:18","17:44"],["18:18","18:40"],["19:28","19:50"]]},"ritorno":{"feriale":[["07:00","07:23","a"],["07:09","07:32","v"],["07:39","08:02","a"],["07:59","08:22","a"],["08:19","08:42","a"],["09:09","09:32","n"],["09:19","09:42","v"],["09:59","10:22","a"],["10:39","11:02","a"],["11:19","11:42","a"],["11:59","12:22","a"],["12:39","13:02","a"],["12:59","13:22","v"],["13:19","13:42","v"],["13:39","14:02","a"],["14:02","14:25","v"],["14:39","15:02","n"],["14:39","15:02","v"],["15:06","15:29","v"],["15:39","16:02","v"],["15:49","16:12","n"],["16:19","16:42","v"],["16:29","16:52","n"],["16:39","17:02","v"],["17:02","17:25","v"],["17:09","17:32","n"],["17:19","17:42","v"],["17:39","18:02","a"],["17:59","18:22","v"],["18:19","18:42","v"],["18:29","18:52","n"],["18:39","19:02","v"],["18:49","19:12","v"],["19:04","19:27","v"],["19:34","19:57","a"],["19:59","20:22","v"],["20:29","20:52","a"]],"festivo":[["08:50","09:18"],["11:20","11:48"],["13:40","14:08"],["15:50","16:18"],["17:50","18:18"],["18:53","19:18"],["20:00","20:28"]]}};
+
+/*PURE-START*/
+const TZ = 'Europe/Rome';
+const MESI = ['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
+const GIORNI = ['domenica','lunedì','martedì','mercoledì','giovedì','venerdì','sabato'];
+const GIORNI_BREVI = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+const VALID_FROM = 20260910, VALID_TO = 20270608;
+// Giorni senza lezioni in Trentino 2026/27 (calendario provinciale); i festivi sono calcolati a parte.
+const NO_SCUOLA = [[20261102,20261102],[20261207,20261208],[20261223,20270106],[20270208,20270209],[20270325,20270331],[20270429,20270501],[20270602,20270602]];
+
+const keyOf = (d) => d.y * 10000 + d.m * 100 + d.d;
+function addDays(d, n) {
+  const t = new Date(Date.UTC(d.y, d.m - 1, d.d) + n * 864e5);
+  return { y: t.getUTCFullYear(), m: t.getUTCMonth() + 1, d: t.getUTCDate() };
+}
+const dowOf = (d) => new Date(Date.UTC(d.y, d.m - 1, d.d)).getUTCDay();
+
+function easter(y) {
+  const a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4;
+  const f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const mo = Math.floor((h + l - 7 * m + 114) / 31), da = ((h + l - 7 * m + 114) % 31) + 1;
+  return { y, m: mo, d: da };
+}
+function isHoliday(d) {
+  const md = d.m * 100 + d.d;
+  if ([101,106,425,501,602,815,1101,1208,1225,1226].includes(md)) return true;
+  return keyOf(addDays(easter(d.y), 1)) === keyOf(d);
+}
+function dayInfo(d) {
+  const k = keyOf(d), dow = dowOf(d);
+  const holiday = isHoliday(d);
+  const festivo = dow === 0 || holiday;
+  const closed = NO_SCUOLA.some(([a, b]) => k >= a && k <= b);
+  const school = !festivo && !closed && k >= VALID_FROM && k <= VALID_TO;
+  return { dow, holiday, festivo, school, valid: k >= VALID_FROM && k <= VALID_TO };
+}
+// a = sempre (lun-sab); v = lun-ven con scuola; s = lun-sab con scuola;
+// n = sabato con scuola e tutti i giorni senza scuola; b = solo sabato con scuola; f = solo venerdì con scuola
+function runs(code, info) {
+  const { dow, school } = info;
+  switch (code) {
+    case 'a': return true;
+    case 'v': return school && dow <= 5;
+    case 's': return school;
+    case 'n': return (school && dow === 6) || !school;
+    case 'b': return school && dow === 6;
+    case 'f': return school && dow === 5;
+    default: return false;
+  }
+}
+function tripsFor(dir, info) {
+  if (info.festivo) return DATA[dir].festivo.map(([dep, arr]) => ({ dep, arr }));
+  return DATA[dir].feriale.filter((t) => runs(t[2], info)).map(([dep, arr]) => ({ dep, arr }));
+}
+const toMin = (hhmm) => +hhmm.slice(0, 2) * 60 + +hhmm.slice(3, 5);
+/*PURE-END*/
+
+function romeNow() {
+  const p = new Intl.DateTimeFormat('en-GB', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date());
+  const g = (t) => +p.find((x) => x.type === t).value;
+  return { date: { y: g('year'), m: g('month'), d: g('day') }, min: g('hour') * 60 + g('minute') };
+}
+
+const FROM = { andata: 15 * 60, ritorno: 15 * 60 };
+const state = { today: null, selected: null, all: false };
+const $ = (id) => document.getElementById(id);
+const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+const hhmm = (min) => String(Math.floor(min / 60)).padStart(2, '0') + ':' + String(min % 60).padStart(2, '0');
+
+function fmtWait(diff) {
+  if (diff <= 0) return 'adesso';
+  if (diff < 60) return 'tra ' + diff + (diff === 1 ? ' minuto' : ' minuti');
+  const h = Math.floor(diff / 60), m = diff % 60;
+  return 'tra ' + h + (h === 1 ? ' ora' : ' ore') + (m ? ' e ' + m + ' min' : '');
+}
+
+const ARROW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h16M14 6l6 6-6 6"/></svg>';
+
+function buildDays(now) {
+  const box = $('days');
+  box.innerHTML = '';
+  for (let i = 0; i < 7; i++) {
+    const d = addDays(now.date, i);
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'day';
+    b.dataset.key = keyOf(d);
+    b.setAttribute('aria-label', cap(GIORNI[dowOf(d)]) + ' ' + d.d + ' ' + MESI[d.m - 1] + (i === 0 ? ' (oggi)' : ''));
+    b.innerHTML = '<span class="dn">' + (i === 0 ? 'Oggi' : GIORNI_BREVI[dowOf(d)]) + '</span><span class="dd">' + d.d + '</span>';
+    b.addEventListener('click', () => { state.selected = d; render(); });
+    box.appendChild(b);
+  }
+}
+
+function renderList(dir, info, isToday, nowMin) {
+  const list = $('list-' + dir), empty = $('empty-' + dir);
+  const from = state.all ? 0 : FROM[dir];
+  const trips = tripsFor(dir, info).filter((t) => toMin(t.dep) >= from).sort((a, b) => toMin(a.dep) - toMin(b.dep));
+  $('range-' + dir).textContent = state.all ? 'Tutte le corse del giorno' : 'Corse dalle ' + hhmm(from);
+  list.innerHTML = '';
+  let nextIdx = -1;
+  if (isToday) nextIdx = trips.findIndex((t) => toMin(t.dep) >= nowMin);
+  trips.forEach((t, i) => {
+    const li = document.createElement('li');
+    const past = isToday && nextIdx !== i && toMin(t.dep) < nowMin;
+    li.className = 'trip' + (i === nextIdx ? ' next' : '') + (past ? ' past' : '');
+    li.innerHTML = '<time class="dep" datetime="' + t.dep + '">' + t.dep + '</time>' + ARROW +
+      '<time class="arr" datetime="' + t.arr + '">' + t.arr + '</time>' +
+      (i === nextIdx ? '<span class="tag">Prossima corsa, ' + fmtWait(toMin(t.dep) - nowMin) + '</span>' : '');
+    list.appendChild(li);
+  });
+  if (!trips.length) {
+    empty.hidden = false;
+    empty.textContent = 'Nessuna corsa ' + (state.all ? 'in questo giorno.' : 'dalle ' + hhmm(from) + ' in questo giorno.');
+  } else if (isToday && nextIdx === -1) {
+    empty.hidden = false;
+    empty.textContent = 'Per oggi le corse sono finite.';
+  } else {
+    empty.hidden = true;
+  }
+}
+
+function render() {
+  const now = romeNow();
+  const sel = state.selected;
+  const info = dayInfo(sel);
+  const isToday = keyOf(sel) === keyOf(now.date);
+
+  document.querySelectorAll('.day').forEach((b) => b.setAttribute('aria-pressed', String(+b.dataset.key === keyOf(sel))));
+
+  const dow = dowOf(sel);
+  let note;
+  if (info.festivo) note = dow === 0 ? 'Orario festivo.' : 'Giorno di festa: orario festivo.';
+  else if (!info.school) note = 'Scuole chiuse: alcune corse non ci sono.';
+  else note = dow === 6 ? 'Sabato.' : 'Giorno feriale.';
+  $('dayline').innerHTML = '<strong>' + cap(GIORNI[dow]) + ' ' + sel.d + ' ' + MESI[sel.m - 1] + (isToday ? ' (oggi)' : '') + '</strong><span>' + note + '</span>';
+
+  const warn = $('warn');
+  warn.hidden = info.valid;
+  if (!info.valid) warn.textContent = 'Questi orari valgono dal 10 settembre 2026 all\'8 giugno 2027. Per questo giorno controlla sul sito di Trentino Trasporti.';
+
+  renderList('andata', info, isToday, now.min);
+  renderList('ritorno', info, isToday, now.min);
+
+  const t = $('toggle');
+  t.textContent = state.all ? 'Mostra solo il pomeriggio' : 'Mostra tutte le corse del giorno';
+  t.setAttribute('aria-pressed', String(state.all));
+}
+
+function init() {
+  const now = romeNow();
+  state.today = keyOf(now.date);
+  state.selected = now.date;
+  buildDays(now);
+  $('toggle').addEventListener('click', () => { state.all = !state.all; render(); });
+  render();
+  setInterval(() => {
+    const n = romeNow();
+    if (keyOf(n.date) !== state.today) {
+      state.today = keyOf(n.date);
+      state.selected = n.date;
+      buildDays(n);
+    }
+    render();
+  }, 30000);
+}
+init();
+</script>
+
+</body>
+</html>
